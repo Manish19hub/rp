@@ -1,0 +1,363 @@
+Start HBase
+hbase shell
+a. Create Flight Info HBase Table
+create 'flight','finfo','fsch'
+Insert Data
+put 'flight',1,'finfo:source','Pune'
+
+put 'flight',1,'finfo:dest','Mumbai'
+
+put 'flight',1,'fsch:arrival','10:30'
+
+put 'flight',1,'fsch:departure','11:00'
+
+put 'flight',1,'fsch:delay','15'
+
+put 'flight',2,'finfo:source','Delhi'
+
+put 'flight',2,'finfo:dest','Chennai'
+
+put 'flight',2,'fsch:arrival','09:00'
+
+put 'flight',2,'fsch:departure','09:30'
+
+put 'flight',2,'fsch:delay','20'
+Display Table
+scan 'flight'
+b. Create, Alter and Drop Table
+Create Table
+create 'airline','ainfo'
+Alter Table
+alter 'airline', NAME => 'aschedule'
+Drop Table
+disable 'airline'
+
+drop 'airline'
+Hive Commands
+Start Hive
+hive
+c. Create External Hive Table Connected to HBase
+CREATE EXTERNAL TABLE flight_hive(
+id STRING,
+source STRING,
+destination STRING,
+arrival STRING,
+departure STRING,
+delay INT
+)
+
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+
+WITH SERDEPROPERTIES(
+"hbase.columns.mapping"=
+":key,finfo:source,finfo:dest,fsch:arrival,fsch:departure,fsch:delay"
+)
+
+TBLPROPERTIES("hbase.table.name"="flight");
+Display Data
+SELECT * FROM flight_hive;
+d. Total Departure Delay
+SELECT SUM(delay) AS Total_Delay
+FROM flight_hive;
+e. Average Departure Delay
+SELECT AVG(delay) AS Average_Delay
+FROM flight_hive;
+f. Create Index on Flight Table
+CREATE INDEX flight_index
+ON TABLE flight_hive(source)
+AS 'COMPACT'
+WITH DEFERRED REBUILD;
+Rebuild Index
+ALTER INDEX flight_index
+ON flight_hive
+REBUILD;
+Write an application using HBase and HiveQL for Customer information system which will
+include
+a. Creation of –Cutomer_info(Cust-ID,Cust-Name,orderID),
+order_info(OrderID,ItemID,Quantity), item_info(Item-ID,Item-Name,ItemPrice)
+tables in Hive
+b. Load table with data from local storage in Hive.
+c. Perform Join tables with Hive
+d. Create Index on Customer information system in Hive.
+e. Find the total, average sales in Hive
+f. Find Order details with maximum cost.
+g. Creating an external Hive table to connect to the HBase for Customer Information
+System.
+h. Display records of Customer Information Table in Hbase
+Start Hive
+hive
+a. Create Tables in Hive
+Customer Table
+CREATE TABLE customer_info(
+cust_id INT,
+cust_name STRING,
+order_id INT
+)
+
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ',';
+Order Table
+CREATE TABLE order_info(
+order_id INT,
+item_id INT,
+quantity INT
+)
+
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ',';
+Item Table
+CREATE TABLE item_info(
+item_id INT,
+item_name STRING,
+item_price INT
+)
+
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ',';
+b. Load Data from Local Storage
+LOAD DATA LOCAL INPATH '/home/cloudera/customer.txt'
+INTO TABLE customer_info;
+LOAD DATA LOCAL INPATH '/home/cloudera/order.txt'
+INTO TABLE order_info;
+LOAD DATA LOCAL INPATH '/home/cloudera/item.txt'
+INTO TABLE item_info;
+c. Perform Join
+SELECT c.cust_id,
+       c.cust_name,
+       o.order_id,
+       i.item_name,
+       o.quantity,
+       i.item_price
+
+FROM customer_info c
+
+JOIN order_info o
+ON c.order_id = o.order_id
+
+JOIN item_info i
+ON o.item_id = i.item_id;
+d. Create Index
+CREATE INDEX cust_index
+
+ON TABLE customer_info(cust_id)
+
+AS 'COMPACT'
+
+WITH DEFERRED REBUILD;
+Rebuild Index
+ALTER INDEX cust_index
+ON customer_info
+REBUILD;
+e. Total and Average Sales
+Total Sales
+SELECT SUM(o.quantity * i.item_price) AS Total_Sales
+
+FROM order_info o
+
+JOIN item_info i
+ON o.item_id = i.item_id;
+Average Sales
+SELECT AVG(o.quantity * i.item_price) AS Average_Sales
+
+FROM order_info o
+
+JOIN item_info i
+ON o.item_id = i.item_id;
+f. Order Details with Maximum Cost
+SELECT o.order_id,
+       SUM(o.quantity * i.item_price) AS Total_Cost
+
+FROM order_info o
+
+JOIN item_info i
+ON o.item_id = i.item_id
+
+GROUP BY o.order_id
+
+ORDER BY Total_Cost DESC
+
+LIMIT 1;
+g. Create HBase Table
+Start HBase
+hbase shell
+Create Table
+create 'customer_hbase','cinfo','oinfo','iinfo'
+Insert Data
+put 'customer_hbase','1','cinfo:name','Manish'
+
+put 'customer_hbase','1','cinfo:order','101'
+
+put 'customer_hbase','1','oinfo:item','501'
+
+put 'customer_hbase','1','oinfo:qty','2'
+
+put 'customer_hbase','1','iinfo:name','Laptop'
+
+put 'customer_hbase','1','iinfo:price','50000'
+Create External Hive Table Connected to HBase
+CREATE EXTERNAL TABLE customer_hive(
+
+rowkey STRING,
+cust_name STRING,
+order_id STRING,
+item_id STRING,
+quantity INT,
+item_name STRING,
+item_price INT
+)
+
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+
+WITH SERDEPROPERTIES(
+
+"hbase.columns.mapping"=
+
+":key,cinfo:name,cinfo:order,oinfo:item,oinfo:qty,iinfo:name,iinfo:price"
+)
+
+TBLPROPERTIES("hbase.table.name"="customer_hbase");
+h. Display Records from HBase
+scan 'customer_hbase'
+Display Records in Hive
+SELECT * FROM customer_hive;
+Write an application using HBase and HiveQL for OnlineRetail Dataset which will include
+i. Create and Load table with Online Retail data in Hive.
+j. Create Index on Online Retail Table in Hive.
+k. Find the total, average sales in Hive
+l. Find Order details with maximum cost.
+m. Find Customer details with maximum order total.
+n. Find the Country with maximum and minimum sale.
+o. Creating an external Hive table to connect to the HBase for OnlineRetail.
+p. Display records of OnlineRetail Table in Hbase
+Start Hive
+hive
+i. Create and Load Online Retail Table
+CREATE TABLE online_retail(
+
+InvoiceNo STRING,
+StockCode STRING,
+Description STRING,
+Quantity INT,
+InvoiceDate STRING,
+UnitPrice DOUBLE,
+CustomerID STRING,
+Country STRING
+
+)
+
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ',';
+Load Data
+LOAD DATA LOCAL INPATH '/home/cloudera/online_retail.csv'
+
+INTO TABLE online_retail;
+Display Data
+SELECT * FROM online_retail LIMIT 10;
+j. Create Index
+CREATE INDEX retail_index
+
+ON TABLE online_retail(CustomerID)
+
+AS 'COMPACT'
+
+WITH DEFERRED REBUILD;
+Rebuild Index
+ALTER INDEX retail_index
+ON online_retail
+REBUILD;
+k. Total and Average Sales
+Total Sales
+SELECT SUM(Quantity * UnitPrice) AS Total_Sales
+
+FROM online_retail;
+Average Sales
+SELECT AVG(Quantity * UnitPrice) AS Average_Sales
+
+FROM online_retail;
+l. Order Details with Maximum Cost
+SELECT InvoiceNo,
+
+SUM(Quantity * UnitPrice) AS Total_Cost
+
+FROM online_retail
+
+GROUP BY InvoiceNo
+
+ORDER BY Total_Cost DESC
+
+LIMIT 1;
+m. Customer Details with Maximum Order Total
+SELECT CustomerID,
+
+SUM(Quantity * UnitPrice) AS Customer_Total
+
+FROM online_retail
+
+GROUP BY CustomerID
+
+ORDER BY Customer_Total DESC
+
+LIMIT 1;
+n. Country with Maximum and Minimum Sale
+Maximum Sale Country
+SELECT Country,
+
+SUM(Quantity * UnitPrice) AS Total_Sale
+
+FROM online_retail
+
+GROUP BY Country
+
+ORDER BY Total_Sale DESC
+
+LIMIT 1;
+Minimum Sale Country
+SELECT Country,
+
+SUM(Quantity * UnitPrice) AS Total_Sale
+
+FROM online_retail
+
+GROUP BY Country
+
+ORDER BY Total_Sale ASC
+
+LIMIT 1;
+o. Create HBase Table
+Start HBase
+hbase shell
+Create Table
+create 'online_hbase','oinfo'
+Insert Data
+put 'online_hbase','1','oinfo:invoice','1001'
+
+put 'online_hbase','1','oinfo:customer','C101'
+
+put 'online_hbase','1','oinfo:country','India'
+
+put 'online_hbase','1','oinfo:amount','5000'
+Create External Hive Table Connected to HBase
+CREATE EXTERNAL TABLE online_hive(
+
+rowkey STRING,
+invoice STRING,
+customer STRING,
+country STRING,
+amount STRING
+
+)
+
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+
+WITH SERDEPROPERTIES(
+
+"hbase.columns.mapping"=
+
+":key,oinfo:invoice,oinfo:customer,oinfo:country,oinfo:amount"
+)
+
+TBLPROPERTIES("hbase.table.name"="online_hbase");
+p. Display Records from HBase
+scan 'online_hbase'
+Display Records in Hive
+SELECT * FROM online_hive;
